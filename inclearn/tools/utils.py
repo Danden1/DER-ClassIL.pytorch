@@ -83,8 +83,8 @@ def display_weight_norm(logger, network, increments, tag):
     logger.info("%s: Weight norm per class %s" % (tag, str(avg_weight_norm)))
 
 
-def display_feature_norm(logger, network, loader, n_classes, increments, tag, return_norm=False):
-    avg_feat_norm_per_cls = get_featnorm_grouped_by_class(network, n_classes, loader)
+def display_feature_norm(logger, network, loader, n_classes, increments, tag, return_norm=False, s=400):
+    avg_feat_norm_per_cls = get_featnorm_grouped_by_class(network, n_classes, loader, s)
     feature_norms = [[] for _ in range(len(increments))]
     increments = np.cumsum(np.array(increments))
     for idx in range(len(avg_feat_norm_per_cls)):
