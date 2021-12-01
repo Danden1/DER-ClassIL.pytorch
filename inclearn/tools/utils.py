@@ -37,7 +37,7 @@ def get_class_loss(network, cur_n_cls, loader):
     return class_loss
 
 
-def get_featnorm_grouped_by_class(network, cur_n_cls, loader):
+def get_featnorm_grouped_by_class(network, cur_n_cls, loader, s=400):
     """
     Ret: feat_norms: list of list
             feat_norms[idx] is the list of feature norm of the images for class idx.
@@ -48,7 +48,7 @@ def get_featnorm_grouped_by_class(network, cur_n_cls, loader):
     with torch.no_grad():
         for x, y in loader:
             x = x.cuda()
-            feat = network(x)['feature'].cpu()
+            feat = network(x, s)['feature'].cpu()
             for i, lbl in enumerate(y):
                 feats[lbl].append(feat[y == lbl])
     for i in range(len(feats)):

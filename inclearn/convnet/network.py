@@ -112,6 +112,7 @@ class BasicNet(nn.Module):
 
     def _add_classes_multi_fc(self, n_classes):
         if self.ntask > 1:
+            # feature extractor
             new_clf = factory.get_convnet(self.convnet_type,
                                           nf=self.nf,
                                           dataset=self.dataset,
@@ -125,6 +126,8 @@ class BasicNet(nn.Module):
 
         fc = self._gen_classifier(self.out_dim * len(self.convnets), self.n_classes + n_classes)
 
+
+        #전이랑 다르게 classifier를 미리 만들지 않음. 
         if self.classifier is not None and self.reuse_oldfc:
             fc.weight.data[:self.n_classes, :self.out_dim * (len(self.convnets) - 1)] = weight
         del self.classifier

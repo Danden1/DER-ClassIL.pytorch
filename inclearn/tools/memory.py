@@ -109,7 +109,7 @@ def random_selection(n_classes, task_size, network, logger, inc_dataset, memory_
 
 
 def herding(n_classes, task_size, network, herding_matrix, inc_dataset, shared_data_inc, memory_per_class: list,
-            logger):
+            logger, s=400):
     """Herding matrix: list
     """
     logger.info("Building & updating memory.(iCaRL)")
@@ -134,7 +134,7 @@ def herding(n_classes, task_size, network, herding_matrix, inc_dataset, shared_d
                                              batch_size=1024,
                                              shuffle=False,
                                              mode="test")
-            features, _ = extract_features(network, loader)
+            features, _ = extract_features(network, loader,s)
             # features_flipped, _ = extract_features(network, inc_dataset.get_custom_loader(class_idx, mode="flip")[-1])
             herding_matrix.append(select_examplars(features, memory_per_class[class_idx])[0])
         alph = herding_matrix[class_idx]

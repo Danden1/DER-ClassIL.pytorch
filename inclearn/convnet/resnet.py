@@ -135,6 +135,13 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 8 * nf, layers[3], stride=2, remove_last_relu=remove_last_relu)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        
+        
+        self.gate = nn.Sigmoid()
+        self.mask_e1 = nn.Parameter(1*nf)
+        self.mask_e2 = nn.Parameter(2*nf)
+        self.mask_e3 = nn.Parameter(4*nf)
+        self.mask_e4 = nn.Parameter(8*nf)
 
         self.out_dim = 8 * nf * block.expansion
 
@@ -181,12 +188,16 @@ class ResNet(nn.Module):
             if isinstance(m, nn.BatchNorm2d):
                 m.reset_running_stats()
 
-    def forward(self, x):
+    def forward(self, x, s):
         x = self.conv1(x)
         x = self.layer1(x)
+        x = x * self.gate(s*self.mask_e1).view(1,-1,1,1).expand_as(x)
         x = self.layer2(x)
+        x = x * self.gate(s*self.mask_e2).view(1,-1,1,1).expand_as(x)
         x = self.layer3(x)
+        x = x * self.gate(s*self.mask_e3).view(1,-1,1,1).expand_as(x)
         x = self.layer4(x)
+        x = x * self.gate(s*self.mask_e4).view(1,-1,1,1).expand_as(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         return x

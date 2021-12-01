@@ -23,7 +23,7 @@ EPSILON = 1e-8
 
 
 class IncModel(IncrementalLearner):
-    def __init__(self, cfg, trial_i, _run, ex, tensorboard, inc_dataset):
+    def __init__(self, cfg, trial_i, _run, ex, tensorboard, inc_dataset, s_max= 400):
         super().__init__()
         self._cfg = cfg
         self._device = cfg['device']
@@ -43,7 +43,7 @@ class IncModel(IncrementalLearner):
         self._n_epochs = cfg["epochs"]
         self._scheduling = cfg["scheduling"]
         self._lr_decay = cfg["lr_decay"]
-
+        self._smax = s_max
         # Classifier Learning Stage
         self._decouple = cfg["decouple"]
 
@@ -159,7 +159,7 @@ class IncModel(IncrementalLearner):
 
         utils.display_weight_norm(self._ex.logger, self._parallel_network, self._increments, "Initial trainset")
         utils.display_feature_norm(self._ex.logger, self._parallel_network, train_loader, self._n_classes,
-                                   self._increments, "Initial trainset")
+                                   self._increments, "Initial trainset", s=self._smax)
 
         self._optimizer.zero_grad()
         self._optimizer.step()
@@ -180,6 +180,8 @@ class IncModel(IncrementalLearner):
                 self._optimizer.zero_grad()
                 old_classes = targets < (self._n_classes - self._task_size)
                 new_classes = targets >= (self._n_classes - self._task_size)
+                
+                s = (self.s_max -1/self._smax)*i/len(train_loader) + 1/self._smax
                 loss_ce, loss_aux = self._forward_loss(
                     inputs,
                     targets,
@@ -188,6 +190,7 @@ class IncModel(IncrementalLearner):
                     accu=accu,
                     new_accu=train_new_accu,
                     old_accu=train_old_accu,
+                    s=s,
                 )
 
                 if self._cfg["use_aux_cls"] and self._task > 0:
@@ -200,8 +203,17 @@ class IncModel(IncrementalLearner):
                     pdb.set_trace()
 
                 loss.backward()
+                '''
+                modify mask gradient
+                '''
+                with torch.no_grad():
+                    for p in self._network.named_parameters():
+                        if p.startswidth('mask'):
+                            p.grad.data *= (F.sigmoid(p)*(1-F.sigmoid(p)))/(s*F.sigmoid(s*p)*(1-F.sigmoid(s*p)))
                 self._optimizer.step()
-
+                
+                
+                
                 if self._cfg["postprocessor"]["enable"]:
                     if self._cfg["postprocessor"]["type"].lower() == "wa":
                         for p in self._network.classifier.parameters():
@@ -235,13 +247,16 @@ class IncModel(IncrementalLearner):
 
         utils.display_weight_norm(self._ex.logger, self._parallel_network, self._increments, "After training")
         utils.display_feature_norm(self._ex.logger, self._parallel_network, train_loader, self._n_classes,
-                                   self._increments, "Trainset")
+                                   self._increments, "Trainset", self._smax)
         self._run.info[f"trial{self._trial_i}"][f"task{self._task}_train_accu"] = round(accu.value()[0], 3)
 
-    def _forward_loss(self, inputs, targets, old_classes, new_classes, accu=None, new_accu=None, old_accu=None):
+    def _forward_loss(self, inputs, targets, old_classes, new_classes, accu=None, new_accu=None, old_accu=None, s=None):
         inputs, targets = inputs.to(self._device, non_blocking=True), targets.to(self._device, non_blocking=True)
-
-        outputs = self._parallel_network(inputs)
+        
+        
+        
+        
+        outputs = self._parallel_network(inputs, s)
         if accu is not None:
             accu.add(outputs['logit'], targets)
             # accu.add(logits.detach(), targets.cpu().numpy())
@@ -345,7 +360,7 @@ class IncModel(IncrementalLearner):
         with torch.no_grad():
             for i, (inputs, lbls) in enumerate(data_loader):
                 inputs = inputs.to(self._device, non_blocking=True)
-                _preds = self._parallel_network(inputs)['logit']
+                _preds = self._parallel_network(inputs, self._smax)['logit']
                 if self._cfg["postprocessor"]["enable"] and self._task > 0:
                     _preds = self._network.postprocessor.post_process(_preds, self._task_size)
                 preds.append(_preds.detach().cpu().numpy())
@@ -355,7 +370,7 @@ class IncModel(IncrementalLearner):
         return preds, targets
 
     def _compute_accuracy_by_ncm(self, loader):
-        features, targets_ = extract_features(self._parallel_network, loader)
+        features, targets_ = extract_features(self._parallel_network, loader, self._smax)
         targets = np.zeros((targets_.shape[0], self._n_classes), np.float32)
         targets[range(len(targets_)), targets_.astype("int32")] = 1.0
 
@@ -401,7 +416,8 @@ class IncModel(IncrementalLearner):
                                                 self._n_classes,
                                                 self._task_size,
                                                 share_memory=self._inc_dataset.shared_data_inc,
-                                                metric='None')
+                                                metric='None',
+                                                s=self._smax)
 
     def build_exemplars(self, inc_dataset, coreset_strategy):
         save_path = os.path.join(os.getcwd(), f"ckpts/mem/mem_step{self._task}.ckpt")
@@ -436,6 +452,7 @@ class IncModel(IncrementalLearner):
                 data_inc,
                 self._memory_per_class,
                 self._ex.logger,
+                self._smax
             )
         else:
             raise ValueError()

@@ -76,14 +76,14 @@ def finetune_last_layer(
     return network
 
 
-def extract_features(model, loader):
+def extract_features(model, loader, s):
     targets, features = [], []
     model.eval()
     with torch.no_grad():
         for _inputs, _targets in loader:
             _inputs = _inputs.cuda()
             _targets = _targets.numpy()
-            _features = model(_inputs)['feature'].detach().cpu().numpy()
+            _features = model(_inputs, s)['feature'].detach().cpu().numpy()
             features.append(_features)
             targets.append(_targets)
 

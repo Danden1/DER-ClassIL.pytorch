@@ -101,6 +101,10 @@ class IncrementalDataset:
 
         self.data_cur, self.targets_cur = x_train, y_train
 
+        
+        '''
+            x_train에 memory에 있는 data들과 새로운 data들을 들고옴.
+        '''
         if self.data_memory is not None:
             print("Set memory of size: {}.".format(len(self.data_memory)))
             if len(self.data_memory) != 0:
