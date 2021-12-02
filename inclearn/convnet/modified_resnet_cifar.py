@@ -1,6 +1,7 @@
 """Taken & slightly modified from:
 * https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
+import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 from torch.nn import functional as F
@@ -71,6 +72,11 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 2 * nf, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 4 * nf, layers[2], stride=2)
         self.avgpool = nn.AvgPool2d(8, stride=1)
+        
+        self.gate = nn.Sigmoid()
+        self.mask_e1 = nn.Parameter(torch.randn(1*nf))
+        self.mask_e2 = nn.Parameter(torch.randn(2*nf))
+        self.mask_e3 = nn.Parameter(torch.randn(4*nf))
 
         self.out_dim = 4 * nf * block.expansion
 
@@ -107,17 +113,29 @@ class ResNet(nn.Module):
             if isinstance(m, nn.BatchNorm2d):
                 m.reset_running_stats()
 
-    def forward(self, x, pool=True):
+    def forward(self, x, s=400):
+        
         x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-
         x = self.layer1(x)
+        x = x * self.gate(s*self.mask_e1).view(1,-1,1,1).expand_as(x)
         x = self.layer2(x)
+        x = x * self.gate(s*self.mask_e2).view(1,-1,1,1).expand_as(x)
         x = self.layer3(x)
-
+        x = x * self.gate(s*self.mask_e3).view(1,-1,1,1).expand_as(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
+        
+        
+        # x = self.conv1(x)
+        # x = self.bn1(x)
+        # x = self.relu(x)
+
+        # x = self.layer1(x)
+        # x = self.layer2(x)
+        # x = self.layer3(x)
+
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
         return x
 
 

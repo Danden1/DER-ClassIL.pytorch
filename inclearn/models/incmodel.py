@@ -3,6 +3,7 @@ import random
 import time
 import math
 import os
+import copy
 from copy import deepcopy
 from scipy.spatial.distance import cdist
 
@@ -63,7 +64,9 @@ class IncModel(IncrementalLearner):
             use_bias=cfg["use_bias"],
             dataset=cfg["dataset"],
         )
-        self._parallel_network = DataParallel(self._network)
+        self._parallel_network = DataParallel(self._network, device_ids=[6], output_device=6)
+        #self._parallel_network = copy.deepcopy(self._network)
+        
         self._train_head = cfg["train_head"]
         self._infer_head = cfg["infer_head"]
         self._old_model = None
@@ -197,10 +200,10 @@ class IncModel(IncrementalLearner):
                     loss = loss_ce + loss_aux
                 else:
                     loss = loss_ce
-
-                if not utils.check_loss(loss):
-                    import pdb
-                    pdb.set_trace()
+                
+                # if not utils.check_loss(loss):
+                #     import pdb
+                #     pdb.set_trace()
 
                 loss.backward()
                 '''

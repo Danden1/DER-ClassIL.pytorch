@@ -156,9 +156,9 @@ class Weight_Align(IncrementalLearner):
                 new_classes = targets >= (self._n_classes - self._task_size)
                 loss = self._forward_loss(inputs, targets, old_classes, new_classes, accu=accu)
 
-                if not utils.check_loss(loss):
-                    import pdb
-                    pdb.set_trace()
+                # if not utils.check_loss(loss):
+                #     import pdb
+                #     pdb.set_trace()
 
                 loss.backward()
                 self._optimizer.step()

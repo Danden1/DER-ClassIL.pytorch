@@ -224,5 +224,6 @@ def test(_run, _rnd, _seed):
 if __name__ == "__main__":
     # ex.add_config('./codes/base/configs/default.yaml')
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+    
     ex.add_config("./configs/default.yaml")
     ex.run_commandline()

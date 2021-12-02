@@ -69,15 +69,15 @@ class BasicNet(nn.Module):
 
         self.to(self.device)
 
-    def forward(self, x):
+    def forward(self, x, s=400):
         if self.classifier is None:
             raise Exception("Add some classes before training.")
 
         if self.der:
-            features = [convnet(x) for convnet in self.convnets]
+            features = [convnet(x, s) for convnet in self.convnets]
             features = torch.cat(features, 1)
         else:
-            features = self.convnet(x)
+            features = self.convnet(x, s)
 
         logits = self.classifier(features)
 
@@ -162,7 +162,7 @@ class BasicNet(nn.Module):
         else:
             classifier = nn.Linear(in_features, n_classes, bias=self.use_bias).to(self.device)
             if self.init == "kaiming":
-                nn.init.kaiming_normal_(classifier.weight, nonlinearity="linear")
+                nn.init.kaiming_normal_(classifier.weight.data, nonlinearity="linear")
             if self.use_bias:
                 nn.init.constant_(classifier.bias, 0.0)
 

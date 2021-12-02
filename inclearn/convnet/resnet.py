@@ -2,6 +2,7 @@
 * https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
 import torch.nn as nn
+import torch
 import torch.utils.model_zoo as model_zoo
 from torch.nn import functional as F
 
@@ -138,10 +139,10 @@ class ResNet(nn.Module):
         
         
         self.gate = nn.Sigmoid()
-        self.mask_e1 = nn.Parameter(1*nf)
-        self.mask_e2 = nn.Parameter(2*nf)
-        self.mask_e3 = nn.Parameter(4*nf)
-        self.mask_e4 = nn.Parameter(8*nf)
+        self.mask_e1 = nn.Parameter(torch.randn(1*nf))
+        self.mask_e2 = nn.Parameter(torch.randn(2*nf))
+        self.mask_e3 = nn.Parameter(torch.randn(4*nf))
+        self.mask_e4 = nn.Parameter(torch.randn(8*nf))
 
         self.out_dim = 8 * nf * block.expansion
 

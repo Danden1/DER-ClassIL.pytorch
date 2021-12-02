@@ -101,7 +101,7 @@ def calc_class_mean(network, loader, class_idx, metric):
     return examplar_mean
 
 
-def update_classes_mean(network, inc_dataset, n_classes, task_size, share_memory=None, metric="cosine", EPSILON=1e-8):
+def update_classes_mean(network, inc_dataset, n_classes, task_size, share_memory=None, metric="cosine", EPSILON=1e-8, s=400):
     loader = inc_dataset._get_loader(inc_dataset.data_inc,
                                      inc_dataset.targets_inc,
                                      shuffle=False,
@@ -112,7 +112,7 @@ def update_classes_mean(network, inc_dataset, n_classes, task_size, share_memory
     network.eval()
     with torch.no_grad():
         for x, y in loader:
-            feat = network(x.cuda())['feature']
+            feat = network(x.cuda(), s)['feature']
             for lbl in torch.unique(y):
                 class_means[lbl] += feat[y == lbl].sum(0).cpu().numpy()
                 count[lbl] += feat[y == lbl].shape[0]
